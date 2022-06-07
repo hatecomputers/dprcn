@@ -29,7 +29,7 @@ The __modules.json__ file is used to describe a series of actions which when put
                 "should_run": true, 
                 "instructions": [
                   "rm -rf {directory}",
-                  "mkdir -p {directory}
+                  "mkdir -p {directory}"
                 ]
             }
     ]},
