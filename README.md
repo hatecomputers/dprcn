@@ -1,6 +1,12 @@
 # 🔬 dprcn
 dpcrn aka dope recon is a module-oriented recon tool.
 
+* [Why another recon tool]()
+* [How it works]()
+    * [External modules]()
+    * [Understanding modules.json]()
+* [Should I use this?]()  
+
 ## Why another recon tool
 
 This started as a _refactor_ of my existing [recon-all-things]() script, which was cluttered and unexplicably unflexible. In the process of learning new things and / or having new ideas, I wanted something easy so I could quickly introduce new workflows or modifying the ones which are no longer useful. By creating this, things look a little more managable. Think of it as an orchestrator, if you will.
@@ -11,11 +17,11 @@ This is a module-oriented tool, which means it relies on two things:
 * external modules 
 * a config file which dictates how those modules interact with one another (modules.json)
 
-### external modules
+### External modules
 
 This can be pretty much anything. 
 
-### modules.json
+### Understanding modules.json
 
 The __modules.json__ file is used to describe a series of actions which when put together, result in a workflow as presented below:
 
