@@ -1,5 +1,5 @@
 from genericpath import isfile
-from os import system, listdir, stat, remove
+from os import system, listdir, stat, remove, getcwd
 from os.path import isfile, join
 
 def write_to_file(filename, content):
@@ -36,4 +36,17 @@ def sort_and_unique(directory):
     Returns 'True' if the operation exits successfully 
     Returns 'False' if the operation exits with error 
     """
-    return system(f'cat {directory}/domains/*.subdomains | sort -u >> {directory}/assets.txt') == 0 
+    return system(f'cat {directory}/domains/*.subdomains | sort -u >> {directory}/assets.txt') == 0
+
+def get_env_vars():
+    """ 
+    Read environemtn variables defined at .env file.
+    """
+    env_vars = {}
+    with open(f'{getcwd()}/.env') as f:
+        for line in f.readlines():
+            key_value = line.strip().split("=")
+            env_vars[key_value[0]] = key_value[1]
+
+    return env_vars
+

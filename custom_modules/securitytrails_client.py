@@ -1,7 +1,6 @@
 import requests;
-import os;
-from json import loads, JSONDecodeError;
 import logging;
+from json import loads, JSONDecodeError;
 from helper import write_to_file;
 
 def parse_response(domain, encoded_json):
@@ -16,10 +15,8 @@ def get_url(domain = ''):
     return f'https://api.securitytrails.com/v1/domain/{domain}/subdomains?children_only=true'
 
 
-def get_hosts(domain, directory):
-    headers = {
-        'apiKey': os.environ['SECURITY_TRAILS_API_KEY'] 
-    }
+def get_hosts(domain, directory, api_key):
+    headers = { 'apiKey': api_key }
     
     try:
         response = requests.get(
