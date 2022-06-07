@@ -1,0 +1,169 @@
+{
+    "setup":  {
+        "should_run": "True",
+        "modules":[
+            {
+                "module_name": "Setting up directories",
+                "should_run": "True", 
+                "instruction": "rm -rf {directory}; mkdir -p {directory}; mkdir -p {directory}/DNS/hosts; mkdir -p {directory}/domains; mkdir -p {directory}/urls; mkdir -p {directory}/params"
+            }
+    ]},
+    "subdomains": {
+        "should_run": "True",
+        "modules":[
+        {
+            "module_name": "crt.sh",
+            "should_run": "True", 
+            "instruction": "curl -s https://crt.sh/?q=%25.{domain}\\&output=json | jq -r '.[].name_value' | grep -v '*' >> {directory}/domains/crtsh.subdomains"
+        },
+        {
+            "module_name": "assetfinder",
+            "should_run": "True", 
+            "instruction": "/usr/local/bin/assetfinder -subs-only {domain} >> {directory}/domains/assetfinder.subdomains"
+        },
+        {
+            "module_name": "findomain",
+            "should_run": "True", 
+            "instruction": "/usr/local/bin/findomain -t {domain} >> {directory}/domains/findomain.subdomains -q"
+        }
+    ]},
+    "dns-info": {
+        "should_run": "True",
+        "modules": [
+        {
+            "module_name": "DNS extraction with Dig",
+            "should_run": "True", 
+            "instruction": "mkdir -p {directory}/DNS; cat {directory}/domains/*.subdomains | sort -u | xargs -I@ -P60 sh -c 'dig @ +short | sort -u >> {directory}/DNS/hosts/@.dns'"
+        },
+        {
+            "module_name": "cname extraction",
+            "should_run": "True", 
+            "instruction": "cat {directory}/domains/*.subdomains | sort -u | xargs -I@ -P60 sh -c 'host -t cname @' | /usr/bin/grep -Ev 'NXDOMAIN|TXT|CNAME' | anew {directory}/DNS/cnames.txt"
+        },
+        {
+            "module_name": "cname validation",
+            "should_run": "True", 
+            "instruction": "cat {directory}/DNS/cnames.txt | awk -F ' ' '{print $NF}' | httpx -silent -mc 404 | anew {directory}/DNS/dead-cnames.txt"
+        },
+        {
+            "module_name": "txt info",
+            "should_run": "True", 
+            "instruction": "cat {directory}/domains/*.subdomains | sort -u | xargs -I@ -P60 sh -c 'host -t txt @' | /usr/bin/grep -Ev 'NXDOMAIN|TXT|CNAME'| anew {directory}/DNS/info.txt"
+        },
+        {
+            "module_name": "dnsx",
+            "should_run": "True", 
+            "instruction": "cat {directory}/domains/*.subdomains | dnsx -silent -resp | sed -E 's/\\[|\\]//g' | awk '{print $NF \" \" $1}' | sort | anew {directory}/DNS/ip-to-host.txt"
+        }
+    ]},
+    "scraping": {
+        "should_run": "True",
+        "modules": [
+        {
+            "module_name": "hakrawler",
+            "should_run": "True", 
+            "instruction": "cat {directory}/domains/*.subdomains | sort -u | httpx -silent | hakrawler -subs >> {directory}/urls/hakrawler.urls"
+        },
+        {
+            "module_name": "waybackurls",
+            "should_run": "True", 
+            "instruction": "cat {directory}/domains/*.subdomains | sort -u | xargs -I@ -P60 sh -c 'waybackurls @' >> {directory}/urls/waybackurls.urls"
+        },
+        {
+            "module_name": "gau",
+            "should_run": "True", 
+            "instruction": "cat {directory}/domains/*.subdomains | sort -u | xargs -I@ -P60 sh -c 'gau --subs --blacklist svg,png,jpg,gif,ttf,css,woff,woff2,eot @  --providers wayback,otx,urlscan' >> {directory}/urls/gau.urls"
+        },
+        {
+            "module_name": "gauplus",
+            "should_run": "True", 
+            "instruction": "cat {directory}/domains/*.subdomains | sort -u | xargs -I@ -P60 sh -c 'gauplus -subs -b svg,png,jpg,gif,ttf,css,woff,woff2,eot @ -random-agent -t 25' >> {directory}/urls/gauplus.urls"
+        },
+        {
+            "module_name": "scraping cleanup",
+            "should_run": "True", 
+            "instruction": "cat {directory}/urls/*.urls | sort -u >> {directory}/urls.txt"
+        }
+    ]},
+    "info-extraction": {
+        "should_run": "True",
+        "modules": [
+        {
+            "module_name": "extract JS urls from urls.txt",
+            "should_run": "True", 
+            "instruction": "cat {directory}/urls/*.urls | grep -E '\\.js$' | grep -Ev 'boostrap|react|jquery|angular' | sort -u | httpx -silent -mc 200 >> {directory}/js-urls.txt"
+        },
+        {
+            "module_name": "transform JS urls into js.map urls",
+            "should_run": "True", 
+            "instruction": "cat {directory}/js-urls.txt | xargs -I@ -P60 sh -c 'echo @.map | httpx -silent -mc 200' | anew {directory}/js-urls.map.txt"
+        },
+        { 
+            "module_name": "extract links from js files",
+            "should_run": "True", 
+            "instruction": "cat {directory}/js-urls.txt | grep -Ev 'google|handlebars|fcli|gcli|bootstrap|jquery' | httpx -silent |  xargs -I@ -P60 sh -c 'linkfinder -i @ -o cli' | anew {directory}/links.txt"
+        },
+        {
+            "module_name": "extract domains from urls.txt",
+            "should_run": "True", 
+            "instruction": "cat {directory}/urls.txt | unfurl -u domains >> {directory}/domains/url-extract-domains.subdomains"
+        },
+        {
+            "module_name": "extract params from urls.txt",
+            "should_run": "True", 
+            "instruction": "cat {directory}/urls.txt | unfurl -u keys | grep -Ev 'utm|gclid|fbc' >> {directory}/params.txt"
+        },
+        {
+            "module_name": "extract APIs info urls.txt",
+            "should_run": "True", 
+            "instruction": "cat {directory}/urls.txt | grep -E '\/api|v\\d+/api|\/api\/\\d+|graphql\\.json$|\\.xml$' >> {directory}/api-endpoints.txt"
+        }
+    ]},
+    "conversion": {
+        "should_run": "True",
+        "modules": [
+        {
+            "module_name": "Get base64 params",
+            "should_run": "True", 
+            "instruction": "cat {directory}/urls.txt | gf base64 | anew {directory}/params/base64.params"
+        },
+        {
+            "module_name": "Get ssrf params",
+            "should_run": "True", 
+            "instruction": "cat {directory}/urls.txt | gf ssrf >> {directory}/params/ssrf.params"
+        },
+        {
+            "module_name": "Get SQLi params",
+            "should_run": "True", 
+            "instruction": "cat {directory}/urls.txt | gf sqli >> {directory}/params/sqli.params"
+        },
+        {
+            "module_name": "extract APIs info urls.txt",
+            "should_run": "True", 
+            "instruction": "cat {directory}/urls.txt | grep -E '\/api|v\\d+/api|\/api\/\\d+|graphql' >> {directory}/api-endpoints.txt"
+        }
+    ]},
+    "resolve-domains": {
+        "should_run": "True",
+        "modules": [
+        {
+            "module_name": "httpx",
+            "should_run": "True", 
+            "instruction": "cat {directory}/domains/*.subdomains | sort -u | httpx -silent -status-code -title -vhost -cdn -no-color >> {directory}/alive.txt"
+        },
+        {
+            "module_name": "Cors",
+            "should_run": "True", 
+            "instruction": "cat {directory}/alive.txt | cut -d ' ' -f1 | xargs -I@ -P60 sh -c 'echo @ >> {directory}/cors.txt; curl -s -I @ -H \"Origin: corstesting.com\" | grep -i \"corstesting\"' >> {directory}/cors.txt" 
+        }
+    ]},
+    "report": {
+        "should_run": "True",
+        "modules": [
+        {
+            "module_name": "generate report",
+            "should_run": "True", 
+            "instruction": "tree -h {directory} | tee -a {directory}/report.txt"
+        }
+    ]}
+}
